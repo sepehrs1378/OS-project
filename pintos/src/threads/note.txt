@@ -1,0 +1,111 @@
+global vars:
+	rl_lock; /* ready list lock */
+
+
+
+thread.h:
+struct thread {
+	lock* thread_lock;
+	list list_of_locks;
+	int priority;
+	int eff_pri;
+	lock* waiting_lock;
+
+};
+
+sync.c:
+struct lock {
+	struct thread* holder;
+	struct semaphore semaphore;
+	int donation;
+}
+
+
+sync.c:
+lock_acquire(lock*) {
+if (lock->holder == null) {
+	list_of_locks.push(lock);
+	lock->holder=current_thread();	
+}
+else{
+	lock->semaphore.waiters.push(current_thread);
+	update_eff_pri(lock->holder);
+	sema_down(lock->semaphore);
+	list_of_locks.push(lock);
+	lock->holder=current_thread();
+}
+}
+
+sync.c:
+lock_release(lock*) {
+
+}
+
+sync.c:
+sema_up() {
+	...
+	select the one with highest 'eff_pri'
+	...
+}
+
+sync.c:
+cond_signal() {
+	...
+	select the one with highest 'eff_pri'
+	...
+}
+
+thread.c:
+next_thread_to_run() {
+	traverse ready_list, select the one with highest 'eff_pri' -> may define a func for it.
+}
+
+thread.c:
+update_eff_pri(thread* t) {
+	lock_acq_no_don(t->thread_lock);
+	t->eff_pri = max(t->priority, [max(l.semaphore.waiters.eff_pri) for l in list_of_locks]);
+	lock_rel_no_don(t->thread_lock);
+}
+
+thread.c:
+thread_set_pri() {
+	lock_acq_no_don(t->thread_lock);
+	t->priority = pri;
+	update_eff_pri();
+	if not highest eff pri (below func) then call thread_yield()
+	lock_rel_no_don(t->thread_lock);
+}
+
+thread.c:
+thread_get_pri() {
+	lock_acq_no_don(t->thread_lock);
+	return t->eff_pri;
+	lock_rel_no_don(t->thread_lock);
+}
+
+thread.c:
+get_highest_eff_pri() {
+	lock_acq_no_don(rl_lock);
+	traverse ready list, return highest eff pri
+	lock_rel_no_don(rl_lock);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
